@@ -12,30 +12,34 @@ const transporter = nodemailer.createTransport({
     },
 });
 const sentOTPController = async (req, res) => {
-    const { email } = req.body
-    const otp = otpGenerator.generate(6)
-    if (!email) {
-        return res.send('email requred')
-    }
-    const isExist = await User.findOne({ email })
-    if (isExist) {
-        const data = await User.findOneAndUpdate({ email }, { otp })
-        const info = await transporter.sendMail({
-            from: '"Litan Molla" <litanmolla9@gmail.com>',
-            to: email,
-            subject: "Your OTP",
-            html: `<b>Your otp: ${otp}</b>`,
-        });
-        return res.send({ message: 'Old user otp update', otp })
-    } else {
-        const user = await new User({ email, otp }).save()
-        const info = await transporter.sendMail({
-            from: '"Litan Molla" <litanmolla9@gmail.com>',
-            to: email,
-            subject: "Your OTP",
-            html: `<b>Your otp: ${otp}</b>`,
-        });
-        return res.send({ otp })
+    try {
+        const { email } = req.body
+        const otp = otpGenerator.generate(6)
+        if (!email) {
+            return res.status(400).json('email requred')
+        }
+        const isExist = await User.findOne({ email })
+        if (isExist) {
+            const data = await User.findOneAndUpdate({ email }, { otp })
+            const info = await transporter.sendMail({
+                from: '"Litan Molla" <litanmolla9@gmail.com>',
+                to: email,
+                subject: "Your OTP",
+                html: `<b>Your otp: ${otp}</b>`,
+            });
+            return res.status(200).json({ success: true, message: 'OTP Updated' })
+        } else {
+            const user = await new User({ email, otp }).save()
+            const info = await transporter.sendMail({
+                from: '"Litan Molla" <litanmolla9@gmail.com>',
+                to: email,
+                subject: "Your OTP",
+                html: `<b>Your otp: ${otp}</b>`,
+            });
+            return res.status(201).json({ success: true, message: 'User created successfully' })
+        }
+    } catch (error) {
+        return res.status(500).json({success: false, message: error.message})
     }
 
 }
@@ -73,4 +77,4 @@ const logoutController = async (req, res) => {
     return res.send('Logout success')
 }
 
-module.exports = { sentOTPController, loginController,logoutController }
+module.exports = { sentOTPController, loginController, logoutController }
