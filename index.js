@@ -3,7 +3,7 @@ const express = require('express')
 const dbConnect = require('./config/dbConnect')
 const usersRoute = require('./routes/usersRoute')
 const app = express()
-
+app.use(express.json())
 dbConnect()
 app.use('/api/v1/users', usersRoute)
 app.listen(8000, () => { console.log('Server is running') })
