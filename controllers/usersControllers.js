@@ -1,6 +1,7 @@
+const User = require('../models/userModel')
 const nodemailer = require('nodemailer')
 const otpGenerator = require('otp-generator')
-const otp = otpGenerator.generate(6)
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     port: 587,
@@ -12,13 +13,64 @@ const transporter = nodemailer.createTransport({
 });
 const sentOTPController = async (req, res) => {
     const { email } = req.body
-    const info = await transporter.sendMail({
-        from: '"Litan Molla" <litanmolla9@gmail.com>',
-        to: email,
-        subject: "Your OTP",
-        html: `<b>Your otp: ${otp}</b>`,
-    });
-    res.send('success')
+    const otp = otpGenerator.generate(6)
+    if (!email) {
+        return res.send('email requred')
+    }
+    const isExist = await User.findOne({ email })
+    if (isExist) {
+        const data = await User.findOneAndUpdate({ email }, { otp })
+        const info = await transporter.sendMail({
+            from: '"Litan Molla" <litanmolla9@gmail.com>',
+            to: email,
+            subject: "Your OTP",
+            html: `<b>Your otp: ${otp}</b>`,
+        });
+        return res.send({ message: 'Old user otp update', otp })
+    } else {
+        const user = await new User({ email, otp }).save()
+        const info = await transporter.sendMail({
+            from: '"Litan Molla" <litanmolla9@gmail.com>',
+            to: email,
+            subject: "Your OTP",
+            html: `<b>Your otp: ${otp}</b>`,
+        });
+        return res.send({ otp })
+    }
+
 }
 
-module.exports = { sentOTPController }
+const loginController = async (req, res) => {
+    const { email } = req.params
+    const { otp } = req.body
+    if (!otp || !email) {
+        res.send('email and otp requierd')
+    }
+    const user = await User.findOne({ email })
+    if (user.isLogin) {
+        return res.send('this account logged in another device, please loguot frist')
+    }
+    if (user.otp == '') {
+        return res.send('please send an otp before login')
+    }
+    if (otp == user.otp) {
+        const data = await User.findOneAndUpdate({ email }, { isLogin: true, otp: '' })
+        return res.send('Login success')
+    } else {
+        return res.send('Invalid otp')
+    }
+}
+
+const logoutController = async (req, res) => {
+    const { email } = req.params
+    if (!email) {
+        return res.send('email required')
+    }
+    const user = await User.findOneAndUpdate({ email }, { isLogin: false })
+    if (!user) {
+        return res.send('user not found')
+    }
+    return res.send('Logout success')
+}
+
+module.exports = { sentOTPController, loginController,logoutController }
