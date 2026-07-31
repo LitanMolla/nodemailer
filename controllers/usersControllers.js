@@ -39,29 +39,36 @@ const sentOTPController = async (req, res) => {
             return res.status(201).json({ success: true, message: 'User created successfully' })
         }
     } catch (error) {
-        return res.status(500).json({success: false, message: error.message})
+        return res.status(500).json({ success: false, message: error.message })
     }
 
 }
 
 const loginController = async (req, res) => {
-    const { email } = req.params
-    const { otp } = req.body
-    if (!otp || !email) {
-        res.send('email and otp requierd')
-    }
-    const user = await User.findOne({ email })
-    if (user.isLogin) {
-        return res.send('this account logged in another device, please loguot frist')
-    }
-    if (user.otp == '') {
-        return res.send('please send an otp before login')
-    }
-    if (otp == user.otp) {
-        const data = await User.findOneAndUpdate({ email }, { isLogin: true, otp: '' })
-        return res.send('Login success')
-    } else {
-        return res.send('Invalid otp')
+    try {
+        const { email } = req.params
+        const { otp } = req.body
+        if (!otp || !email) {
+            return res.status(400).json({ success: false, message: 'All feild are required' })
+        }
+        const user = await User.findOne({ email })
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'User not found' })
+        }
+        if (user.isLogin) {
+            return res.status(400).json({ success: false, message: 'this account logged in another device, please loguot frist' })
+        }
+        if (user.otp == '') {
+            return res.status(400).json({ success: false, message: 'please send an otp before login' })
+        }
+        if (otp == user.otp) {
+            const data = await User.findOneAndUpdate({ email }, { isLogin: true, otp: '' })
+            return res.status(200).json({ success: true, message: 'Login successfully!' })
+        } else {
+            return res.status(400).json({ success: false, message: 'Invalid otp' })
+        }
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message })
     }
 }
 
